@@ -1,0 +1,76 @@
+(ЧЕРНОВИК)
+
+Процедура записи настроек
+ >>> 4B
+ <<< AA
+ >>> (settings)
+ <<< AA
+
+
+Контраст экрана:
+ >>> 63 (XX)
+ <<< AA
+
+              1F 35 1C 14 F4 06 FF 0F 32 04 0A 0A 32 0E 0D 02 07 17 0F 1D 25 
+              1F 35 1E 14 F4 06 FF 0F 32 04 0A 0A 32 0E 0D 02 07 17 0F 1D 25 
+
+                    ^^
+                    сохраняется в настройках
+
+              1F 35 16 14 F4 06 FF 0F 32 04 0A 0A 32 0E 0D 02 07 17 1A 0F 2A
+                                                          эээ, что в хвосте?   
+
+
+(XX) -- один байт, описывает контрастность
+   максимум в интерфейсе dec(42) = hex(2A)
+   минимум в интерфейсе dec(22) = hex(16)
+
+
+Чтение диагностики/алярмов:
+ (одна и та же команда, один и тот же ответ)
+
+ >>> 50 
+
+ <<<
+ AA                                                
+
+ 50 00 10 00 0D 02 07 15 2A 26 32 0E 31 38 30 30   [prolog]
+ ^^^^^^^^^^^-------------------------------------- memory locations
+             ^^^^^^^^----------------------------- date (DD MM YY)
+                      ^^^^^^^^-------------------- time (HH MM SS)
+                               ^^^^^-------------- serial (hi lo)
+                                     ^^^^^^^^----- firmware version (3 ASCII letters)
+                                              ^^-- preamble code (stop byte)
+
+ 0D 02 07 15 2A 3B 86 00 E1 FF 00 00 01 0C FF 50   [log records]
+ ^^^^^^^^----------------------------------------- date
+          ^^^^^^^^-------------------------------- time
+                   ^^----------------------------- battery voltage (*10 mV)
+                         ^^^^^-------------------- battery current (two-complement?)
+                                     ^^----------- battery type
+                                        ^^-------- battery bars (somehow lies)
+                                           ^^----- ICA
+                                              ^^-- operation code
+
+ AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA   [epilog]
+
+
+
+Чтение дозы:
+ >>> 79
+ <<< 
+ AA 
+ 20 10 10 10 0D 02 07 15 2A 28 32 0E 31 38 30 31  [prolog]
+                                              ^^-- preamble code (stop byte)
+
+ 0D 02 07 16 00 00 08 00 00 00 DC 00 81 00 FF 44  [log records]
+ ^^^^^^^^----------------------------------------- date
+          ^^^^^^^^-------------------------------- time
+                   ^^^^^^^^^^^-------------------- accumulated dose
+                               ^^^^^-------------- time period (sec)
+                                     ^^----------- battery voltage (*10 mV)
+                                           ^^----- ICA
+                                              ^^-- operation code (always "D"?)
+
+ AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA  [epilog]
+
