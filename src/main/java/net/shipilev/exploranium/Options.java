@@ -38,6 +38,7 @@ public class Options {
     private final PrintWriter pw;
     private String port;
     private boolean liveStream;
+    private boolean dumpInfo;
 
     public Options(String[] args, PrintWriter pw) {
         this.args = args;
@@ -69,6 +70,7 @@ public class Options {
         }
 
         parser.accepts("l", "Live data streaming");
+        parser.accepts("d", "Dump data");
 
         parser.accepts("v", "Be verbose");
         parser.accepts("h", "Print this help");
@@ -90,6 +92,7 @@ public class Options {
 
         this.port = set.valueOf(port);
         this.liveStream = set.has("l");
+        this.dumpInfo = set.has("d");
         return true;
     }
 
@@ -99,5 +102,9 @@ public class Options {
 
     public boolean shouldLiveStream() {
         return liveStream;
+    }
+
+    public boolean shouldDumpInfo() {
+        return dumpInfo;
     }
 }

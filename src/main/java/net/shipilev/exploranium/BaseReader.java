@@ -49,7 +49,7 @@ public class BaseReader {
             CommPortIdentifier ident = CommPortIdentifier.getPortIdentifier(port);
 
             serial = ident.open("NRSerialPort", 2000);
-            serial.enableReceiveTimeout(1000);
+            serial.enableReceiveTimeout(5000);
             serial.setSerialPortParams(2400, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
             commIn = serial.getInputStream();
@@ -109,8 +109,17 @@ public class BaseReader {
                 return;
             }
 
+            long time1 = System.currentTimeMillis();
             byte[] buf = readLine(commIn, 8);
-            pw.println(Arrays.toString(buf));
+            int c1 = buf[0] + (buf[1] << 8);
+            int c2 = buf[2] + (buf[3] << 8);
+            int c3 = buf[4] + (buf[5] << 8);
+            long time2 = System.currentTimeMillis();
+
+            int counts = c1 + c2 + c3;
+            pw.printf("%d counts / %d msec = %d cps = %d cpm\n",
+                    counts, time2 - time1, (counts * 1000) / (time2 - time1), 60 * (counts * 1000) / (time2 - time1));
+//            pw.println(Arrays.toString(buf));
         }
     }
 

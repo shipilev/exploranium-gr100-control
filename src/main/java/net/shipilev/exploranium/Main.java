@@ -29,7 +29,7 @@ import java.io.PrintWriter;
 public class Main {
 
     public static void main(String[] args) throws IOException, NoSuchPortException, UnsupportedCommOperationException, PortInUseException {
-        PrintWriter pw = new PrintWriter(System.out);
+        PrintWriter pw = new PrintWriter(System.out, true);
 
         pw.println("Exploranium GR-100: Control Software.");
         pw.println("  This is the free software, use this on your own risk.");
@@ -47,7 +47,9 @@ public class Main {
             if (opts.shouldLiveStream()) {
                 reader.liveStream();
             }
-
+            if (opts.shouldDumpInfo()) {
+                reader.dump();
+            }
         } finally {
             reader.close();
             pw.close();
