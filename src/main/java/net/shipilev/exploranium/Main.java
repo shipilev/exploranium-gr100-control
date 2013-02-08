@@ -29,6 +29,7 @@ import gnu.io.UnsupportedCommOperationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.Arrays;
 
 public class Main {
@@ -43,15 +44,16 @@ public class Main {
         serial.enableReceiveTimeout(1000);
         serial.setSerialPortParams(2400, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
-        InputStream in = serial.getInputStream();
-        OutputStream out = serial.getOutputStream();
+        InputStream commIn = serial.getInputStream();
+        OutputStream commOut = serial.getOutputStream();
 
-        out.write((byte) (0x50));
-        out.flush();
+        commOut.write((byte) (0x50));
+        commOut.flush();
 
-        int h = in.read();
+        int h = commIn.read();
+        PrintStream out = System.err;
         if (h != 0xAA) {
-            System.err.println("Unable to read.");
+            out.println("Unable to read.");
         }
 
         byte[] stop = new byte[16];
@@ -60,23 +62,55 @@ public class Main {
         }
 
         // read prolog
-        byte[] buf = readLine(in);
-        System.err.printf("%02d/%02d/%02d %02d:%02d:%02d\n", 2000 + buf[4], buf[5], buf[6], buf[7], buf[8], buf[9]);
+        byte[] buf = readLine(commIn);
+        out.printf("%02d/%02d/%02d %02d:%02d:%02d\n", 2000 + buf[4], buf[5], buf[6], buf[7], buf[8], buf[9]);
 
         // read all records
-        while (!Arrays.equals(buf = readLine(in), stop)) {
-            System.err.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-            System.err.printf("%.2f", buf[6] / 100.0);
-            System.err.printf("\n");
+        while (!Arrays.equals(buf = readLine(commIn), stop)) {
+            switch (buf[15]) {
+                case 'P':
+                case 'S':
+                    parseP(out, buf);
+                    break;
+                case 'A':
+                    parseA(out, buf);
+                    break;
+                default:
+                    out.printf("Unknown operation code '%s': %s\n", (char)buf[15], Arrays.toString(buf));
+            }
         }
 
         // read the rest
         int b;
-        while ((b = in.read()) != -1) {}
+        while ((b = commIn.read()) != -1) {}
 
-        serial.getInputStream().close();
-        serial.getOutputStream().close();
+        commIn.close();
+        commOut.close();
         serial.close();
+    }
+
+    private static void parseA(PrintStream out, byte[] buf) {
+        int maxGamma = (buf[6]) + (buf[7] << 8) + (buf[8] << 16) + (buf[9] << 24);
+        int maxDose =  (buf[10]) + (buf[11] << 8) + (buf[12] << 16) + (buf[13] << 24);
+
+        out.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+        out.printf("%-10s %d cps, %d nSv/h", "ALARM", maxGamma, maxDose);
+        out.printf("\n");
+    }
+
+    private static void parseP(PrintStream out, byte[] buf) {
+        out.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+        int voltage = (buf[6] & 0xFF);
+        short current = (short) (((short)buf[7] & 0xFF) | (((short)buf[8] & 0xFF) << 8));
+        out.printf("%s ", Integer.toBinaryString(current));
+        out.printf("%-10s %.2fV %d mA", "POWER-ON", voltage / 100.D, current);
+        out.printf("\n");
+    }
+
+    private static void parseS(PrintStream out, byte[] buf) {
+//        out.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+//        out.printf("%-10s %d cps, %d nSv/h", "ALARM", maxGamma, maxDose);
+//        out.printf("\n");
     }
 
     private static byte[] readLine(InputStream in) throws IOException {
