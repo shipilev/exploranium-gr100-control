@@ -21,6 +21,7 @@
 package net.shipilev.exploranium;
 
 import gnu.io.CommPortIdentifier;
+import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -55,8 +56,16 @@ public class Options {
         OptionParser parser = new OptionParser();
         parser.formatHelpWith(new OptFormatter());
 
-        OptionSpec<String> port = parser.accepts("p", "Communication port")
-                .withRequiredArg().ofType(String.class).describedAs("PORT").defaultsTo(selectPort());
+        String s = selectPort();
+
+        ArgumentAcceptingOptionSpec<String> spec = parser.accepts("p", "Communication port")
+                .withRequiredArg().ofType(String.class).describedAs("PORT");
+        OptionSpec<String> port;
+        if (s != null) {
+            port = spec.defaultsTo(selectPort());
+        } else {
+            port = spec.required();
+        }
 
         parser.accepts("v", "Be verbose");
         parser.accepts("h", "Print this help");
