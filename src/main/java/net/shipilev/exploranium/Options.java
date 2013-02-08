@@ -37,6 +37,7 @@ public class Options {
     private final String[] args;
     private final PrintWriter pw;
     private String port;
+    private boolean liveStream;
 
     public Options(String[] args, PrintWriter pw) {
         this.args = args;
@@ -67,6 +68,8 @@ public class Options {
             port = spec.required();
         }
 
+        parser.accepts("l", "Live data streaming");
+
         parser.accepts("v", "Be verbose");
         parser.accepts("h", "Print this help");
 
@@ -86,10 +89,15 @@ public class Options {
         }
 
         this.port = set.valueOf(port);
+        this.liveStream = set.has("l");
         return true;
     }
 
     public String getPort() {
         return port;
+    }
+
+    public boolean shouldLiveStream() {
+        return liveStream;
     }
 }

@@ -19,20 +19,12 @@
  */
 package net.shipilev.exploranium;
 
-import gnu.io.CommPortIdentifier;
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
-import gnu.io.RXTXPort;
-import gnu.io.SerialPort;
 import gnu.io.UnsupportedCommOperationException;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.Enumeration;
 
 public class Main {
 
@@ -52,7 +44,10 @@ public class Main {
 
         BaseReader reader = new BaseReader(opts, pw);
         try {
-            reader.live();
+            if (opts.shouldLiveStream()) {
+                reader.liveStream();
+            }
+
         } finally {
             reader.close();
             pw.close();

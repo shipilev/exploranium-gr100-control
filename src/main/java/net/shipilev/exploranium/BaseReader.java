@@ -98,7 +98,7 @@ public class BaseReader {
 
     }
 
-    public void live() throws IOException {
+    public void liveStream() throws IOException {
         for (int i = 0; i < 100; i++) {
             commOut.write((byte) (0x43));
             commOut.flush();
