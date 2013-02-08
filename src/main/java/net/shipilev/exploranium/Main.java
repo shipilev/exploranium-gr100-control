@@ -35,6 +35,10 @@ import java.util.Arrays;
 public class Main {
 
     public static void main(String[] args) throws IOException, NoSuchPortException, UnsupportedCommOperationException, PortInUseException {
+        live();
+    }
+
+    public static void dump() throws NoSuchPortException, PortInUseException, UnsupportedCommOperationException, IOException {
         String port = "/dev/ttyUSB0";
 
         System.setProperty("gnu.io.rxtx.SerialPorts", port);
@@ -62,11 +66,11 @@ public class Main {
         }
 
         // read prolog
-        byte[] buf = readLine(commIn);
+        byte[] buf = readLine(commIn, 16);
         out.printf("%02d/%02d/%02d %02d:%02d:%02d\n", 2000 + buf[4], buf[5], buf[6], buf[7], buf[8], buf[9]);
 
         // read all records
-        while (!Arrays.equals(buf = readLine(commIn), stop)) {
+        while (!Arrays.equals(buf = readLine(commIn, 16), stop)) {
             switch (buf[15]) {
                 case 'P':
                 case 'S':
@@ -83,6 +87,39 @@ public class Main {
         // read the rest
         int b;
         while ((b = commIn.read()) != -1) {}
+
+        commIn.close();
+        commOut.close();
+        serial.close();
+    }
+
+    public static void live() throws NoSuchPortException, PortInUseException, UnsupportedCommOperationException, IOException {
+        String port = "/dev/ttyUSB0";
+
+        System.setProperty("gnu.io.rxtx.SerialPorts", port);
+        CommPortIdentifier ident = CommPortIdentifier.getPortIdentifier(port);
+
+        RXTXPort serial = ident.open("NRSerialPort", 2000);
+        serial.enableReceiveTimeout(5000);
+        serial.setSerialPortParams(2400, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+
+        InputStream commIn = serial.getInputStream();
+        OutputStream commOut = serial.getOutputStream();
+
+        PrintStream out = System.err;
+        for (int i = 0; i < 100; i++) {
+            commOut.write((byte) (0x43));
+            commOut.flush();
+
+            int h = commIn.read();
+            if (h != 0xAA) {
+                out.println("Unable to read.");
+                return;
+            }
+
+            byte[] buf = readLine(commIn, 8);
+            out.println(Arrays.toString(buf));
+        }
 
         commIn.close();
         commOut.close();
@@ -113,9 +150,9 @@ public class Main {
 //        out.printf("\n");
     }
 
-    private static byte[] readLine(InputStream in) throws IOException {
-        byte[] buf = new byte[16];
-        for (int i = 0; i < 16; i++) {
+    private static byte[] readLine(InputStream in, int count) throws IOException {
+        byte[] buf = new byte[count];
+        for (int i = 0; i < count; i++) {
             int read = in.read();
             if (read == -1) {
                 throw new IOException();
