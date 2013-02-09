@@ -6,10 +6,11 @@ LiI scintillation detectors. Everything is awesome except the support
 software being locked down on Windows (and quite frankly, feels like
 a high school student project with all the forms and buttons).
 
-This project talks to GR-100 via RS-232 in the same fashion. The benefits
-are obvious: a) you can hack on the code; b) you can run this code on
-multitude of platforms (I would go for Python, but Java seems to offer
-enough functionality to do this in less messier fashion).
+This project talks to GR-100 via RS-232 just like original software
+does. The benefits are obvious: a) you can run this code on multitude
+of platforms (I would go for Python, but Java seems to offer enough
+functionality to do this in less messier way); b) you can hack on the
+code to fit it to your needs.
 
 Quick-start:
   1. Checkout and build:
