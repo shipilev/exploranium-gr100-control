@@ -59,6 +59,9 @@ public class Main {
                 reader.liveStream();
                 return;
             }
+            if (opts.shouldDumpSettings()) {
+                reader.dumpSettings();
+            }
             if (opts.shouldDumpInfo()) {
                 reader.dumpDiagnostic();
             }

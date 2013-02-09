@@ -154,10 +154,34 @@ RAW DATA:
  >>> 4A
  <<< AA
  <<< 
-    45 05 1C 14 F4 06 FF 0F 32 04 0A 0A 03 08 87   
- 00 33 36 33 34 31 38 30 00 0D 02 08 17 0C 39 EE   
+    45           <---- status flag
+      0000 0000
+              ^------- vibrator on/off
+             ^-------- buzzer on/off
+            ^--------- backlight on/off
+           ^---------- beep on/off
+         ^------------ Gy/h
+        ^------------- R/h
+       ^-------------- Sv/h
 
- Q: Interpret the bytes!
+    05           <---- ???
+    1C           <---- screen contrast
+    14           <---- ???
+    F4 06        <---- gamma discriminator (lo, hi)
+    FF 0F        <---- neutron discriminator (lo, hi)
+    32           <---- gamma alarm level?  (sigma)
+    04           <---- neutron alarm level? (cnt/6 sec)
+    0A           <---- DANGER gamma level? (uSv/h)
+    0A           <---- DANGER neutron level? (cnt/6 sec)
+    36 08        <---- temperature?
+    7F 00        <---- battery voltage
+    33 36 33 34  <---- serial?
+    31 38 30     <---- firmware ver
+    00           <---- ???
+    0D 02 08     <---- date
+    17 0C 39     <---- time
+    EE           <---- always changing, checksum?
+ 
 
 ******* Write settings
  >>> 4B

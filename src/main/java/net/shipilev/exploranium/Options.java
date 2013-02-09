@@ -41,6 +41,7 @@ public class Options {
     private boolean dumpInfo;
     private boolean dumpDose;
     private boolean dumpAlarm;
+    private boolean dumpSettings;
     private boolean gatherSpectrum;
     private int spectrumDuration;
 
@@ -72,6 +73,7 @@ public class Options {
         parser.accepts("d", "Dump accumulated dose log.");
         parser.accepts("i", "Dump diagnostic info.");
         parser.accepts("a", "Dump registered alarms.");
+        parser.accepts("u", "Dump user settings");
 
         parser.accepts("v", "Be verbose.");
         parser.accepts("h", "Print this help.");
@@ -96,6 +98,7 @@ public class Options {
         this.dumpInfo = set.has("i");
         this.dumpAlarm = set.has("a");
         this.dumpDose = set.has("d");
+        this.dumpSettings = set.has("u");
 
         if (set.has("s")) {
             this.gatherSpectrum = true;
@@ -131,6 +134,10 @@ public class Options {
 
     public boolean shouldDumpAlarms() {
         return dumpAlarm;
+    }
+
+    public boolean shouldDumpSettings() {
+        return dumpSettings;
     }
 
 

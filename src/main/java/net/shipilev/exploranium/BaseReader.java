@@ -64,17 +64,30 @@ public class BaseReader {
             CommPortIdentifier ident = CommPortIdentifier.getPortIdentifier(port);
 
             serial = ident.open("NRSerialPort", 2000);
-            serial.enableReceiveTimeout(100);
+            serial.enableReceiveTimeout(1000);
             serial.setSerialPortParams(2400, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
             commIn = serial.getInputStream();
             commOut = serial.getOutputStream();
+
+            tryReadOutStale();
         } catch (NoSuchPortException e) {
             throw new RuntimeException(e);
         } catch (PortInUseException e) {
             throw new RuntimeException(e);
         } catch (UnsupportedCommOperationException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void tryReadOutStale() {
+        try {
+            while (true) {
+                byte[] bytes = readLine(commIn, 16);
+                pw.println("Warning: stale data read: " + Arrays.toString(bytes));
+            }
+        } catch (IOException e) {
+            // expected
         }
     }
 
@@ -234,7 +247,7 @@ public class BaseReader {
 
         pw.printf("Gathering gamma spectrum (%d seconds per channel)\n", secsPerChannel);
 
-        commOut.write((byte)0x53);
+        commOut.write((byte) 0x53);
         commOut.flush();
 
         int h = commIn.read();
@@ -256,6 +269,58 @@ public class BaseReader {
 
         commOut.write((byte)0x5A);
         commOut.flush();
+    }
+
+    public void dumpSettings() throws IOException {
+        commOut.write((byte)0x4A);
+        commOut.flush();
+
+        int h = commIn.read();
+        if (h != 0xAA) {
+            pw.println("Unable to read from " + port);
+            return;
+        }
+
+        byte[] buf = readLine(commIn, 31);
+        ByteBuffer b = ByteBuffer.wrap(buf);
+        b.order(ByteOrder.LITTLE_ENDIAN);
+
+        pw.println("Device settings:");
+
+        pw.printf("  Firmware Rev.: %s\n", (char)b.get(20) + "V" + (char)b.get(21) + (char)b.get(22));
+        pw.format("  Date/Time: %4d/%02d/%02d %02d:%02d:%02d\n", 2000 + b.get(24), b.get(25), b.get(26), b.get(27), b.get(28), b.get(29));
+
+        pw.printf("  Battery voltage: %2.1fV\n", b.getShort(14) / 100f);
+        pw.printf("  Temperature: %2.1fC\n", b.getShort(12) / 100f);
+        pw.printf("  Screen contrast: %d\n", b.get(3));
+
+        byte status = b.get(0);
+        if (((status & ~0x10) != status)) {
+            pw.println("  Units: Gy/h");
+        }
+
+        if (((status & ~0x20) != status)) {
+            pw.println("  Units: R/h");
+        }
+
+        if (((status & ~0x40) != status)) {
+            pw.println("  Units: Sv/h");
+        }
+
+        pw.printf("  Gamma alarm set at %2.1f sigma over background.\n", b.get(8) / 10f);
+        pw.printf("  Gamma danger alarm set at %d uSv/h.\n", b.get(10));
+
+        pw.printf("  Neutron alarm set at %d counts per 6 seconds.\n", b.get(9));
+        pw.printf("  Neutron danger alarm set at %d counts per 6 seconds.\n", b.get(11));
+
+        pw.println("  Visuals:");
+        pw.printf("    vibrator %s\n", ((status & ~0x01) != status) ? "ON" : "OFF");
+        pw.printf("    buzzer %s\n", ((status & ~0x02) != status) ? "ON" : "OFF");
+        pw.printf("    beep %s\n", ((status & ~0x08) != status) ? "ON" : "OFF");
+        pw.printf("    backlight %s\n", ((status & ~0x04) != status) ? "ON" : "OFF");
+
+//        pw.printf("  gamma discriminator: %d\n", b.getShort(4));
+//        pw.printf("  neutron discriminator: %d\n", b.getShort(6));
     }
 
     public static class Record {
@@ -384,7 +449,7 @@ public class BaseReader {
         for (int i = 0; i < count; i++) {
             int read = in.read();
             if (read == -1) {
-                throw new IOException();
+                throw new IOException("Unable to read byte " + (i+1) + " of " + count);
             }
             buf[i] = (byte) read;
         }
