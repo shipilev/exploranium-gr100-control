@@ -113,6 +113,39 @@ public class BaseReader {
 
     }
 
+    public void dumpDose() throws NoSuchPortException, PortInUseException, UnsupportedCommOperationException, IOException {
+        commOut.write((byte) (0x79));
+        commOut.flush();
+
+        int h = commIn.read();
+        if (h != 0xAA) {
+            pw.println("Unable to read.");
+        }
+
+        byte[] stop = new byte[16];
+        for (int i = 0; i < 16; i++) {
+            stop[i] = (byte) 0xAA;
+        }
+
+        // read prolog
+        byte[] buf = readLine(commIn, 16);
+        pw.printf("%02d/%02d/%02d %02d:%02d:%02d\n", 2000 + buf[4], buf[5], buf[6], buf[7], buf[8], buf[9]);
+
+        // read all records
+        while (!Arrays.equals(buf = readLine(commIn, 16), stop)) {
+            ByteBuffer bbb = ByteBuffer.wrap(buf);
+            bbb.order(ByteOrder.LITTLE_ENDIAN);
+            switch (bbb.get(15)) {
+                case 'D':
+                    parseD(bbb);
+                    break;
+                default:
+                    pw.printf("Unknown operation code '%s': %s\n", (char) buf[15], Arrays.toString(buf));
+            }
+        }
+
+    }
+
     public void liveStream() throws IOException {
         for (int i = 0; i < 100; i++) {
             commOut.write((byte) (0x43));
@@ -144,6 +177,15 @@ public class BaseReader {
 
         pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(0), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
         pw.printf("%-20s peak %d cps, %d nSv/h", "ALARM", maxGamma, maxDose);
+        pw.printf("\n");
+    }
+
+    private void parseD(ByteBuffer buf) {
+        int dose = buf.getInt(6);
+        int time = buf.getShort(10);
+
+        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(0), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
+        pw.printf("  %-20s %d nSv, %d sec, %.2f nSv/h", "DOSE", dose, time, dose * 3600.0D / time);
         pw.printf("\n");
     }
 

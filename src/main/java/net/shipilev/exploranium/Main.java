@@ -50,6 +50,9 @@ public class Main {
             if (opts.shouldDumpInfo()) {
                 reader.dump();
             }
+            if (opts.shouldDumpDose()) {
+                reader.dumpDose();
+            }
         } finally {
             reader.close();
             pw.close();
