@@ -21,3 +21,16 @@ Quick-start:
 
   2. Run:
       $ java -jar exploranium-gr100-control.jar -h
+
+So far this thing can:
+ * dump the diagnostic logs, tracking battery status and current drain
+ * dump the gamma/neutron alert logs
+ * dump the hourly accumulated dose logs
+ * run GR-100 in live mode: gathering the gamma/neutron counters online
+ * run GR-100 in gamma spectrometer mode
+ * show the current configuration of the device
+
+Things to do:
+ * Hardware self-tests
+ * Pushing the device configuration
+ * Clear diagnostic/alert/dose logs
