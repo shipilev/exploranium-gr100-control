@@ -41,6 +41,8 @@ public class Options {
     private boolean dumpInfo;
     private boolean dumpDose;
     private boolean dumpAlarm;
+    private boolean gatherSpectrum;
+    private int spectrumDuration;
 
     public Options(String[] args, PrintWriter pw) {
         this.args = args;
@@ -62,6 +64,9 @@ public class Options {
 
         OptionSpec<String> port = parser.accepts("p", "Communication port (e.g. COM1, /dev/ttyUSB0, etc).")
                 .withRequiredArg().ofType(String.class).describedAs("PORT").required();
+
+        OptionSpec<Integer> spectrumDuration = parser.accepts("s", "Gather gamma-spectrum with given time per channel.")
+                .withOptionalArg().ofType(Integer.class).describedAs("secs-per-channel").defaultsTo(1);
 
         parser.accepts("l", "Live data streaming.");
         parser.accepts("d", "Dump accumulated dose log.");
@@ -91,6 +96,12 @@ public class Options {
         this.dumpInfo = set.has("i");
         this.dumpAlarm = set.has("a");
         this.dumpDose = set.has("d");
+
+        if (set.has("s")) {
+            this.gatherSpectrum = true;
+            this.spectrumDuration = set.valueOf(spectrumDuration);
+        }
+
         return true;
     }
 
@@ -100,6 +111,14 @@ public class Options {
 
     public boolean shouldLiveStream() {
         return liveStream;
+    }
+
+    public boolean shouldGatherSpectrum() {
+        return gatherSpectrum;
+    }
+
+    public int getSpectrumDuration() {
+        return spectrumDuration;
     }
 
     public boolean shouldDumpInfo() {
@@ -113,4 +132,6 @@ public class Options {
     public boolean shouldDumpAlarms() {
         return dumpAlarm;
     }
+
+
 }

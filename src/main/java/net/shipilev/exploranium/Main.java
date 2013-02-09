@@ -51,8 +51,13 @@ public class Main {
 
         BaseReader reader = new BaseReader(opts, pw);
         try {
+            if (opts.shouldGatherSpectrum()) {
+                reader.gatherSpectrum();
+                return;
+            }
             if (opts.shouldLiveStream()) {
                 reader.liveStream();
+                return;
             }
             if (opts.shouldDumpInfo()) {
                 reader.dumpDiagnostic();

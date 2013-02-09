@@ -49,12 +49,14 @@ public class BaseReader {
     private final InputStream commIn;
     private final OutputStream commOut;
     private final RXTXPort serial;
+    private final Options opts;
     private final PrintWriter pw;
     private final String port;
     private final List<Record> records = new ArrayList<Record>();
     private boolean read;
 
     public BaseReader(Options opts, PrintWriter pw) {
+        this.opts = opts;
         this.pw = pw;
         try {
             port = opts.getPort();
@@ -222,6 +224,38 @@ public class BaseReader {
             default:
                 return new UnknownRecord(buf);
         }
+    }
+
+    public void gatherSpectrum() throws IOException {
+        final int CHANNELS = 41;
+
+        int secsPerChannel = opts.getSpectrumDuration();
+        serial.enableReceiveTimeout(secsPerChannel * 2 * 1000); // beef up for measurement
+
+        pw.printf("Gathering gamma spectrum (%d seconds per channel)\n", secsPerChannel);
+
+        commOut.write((byte)0x53);
+        commOut.flush();
+
+        int h = commIn.read();
+        if (h != 0xAA) {
+            pw.println("Unable to read from " + port);
+            return;
+        }
+
+        commOut.write((byte)(secsPerChannel & 0xFF));
+        commOut.write((byte)((secsPerChannel >> 8) & 0xFF));
+        commOut.flush();
+
+        for (int i = 1; i <= CHANNELS; i++) {
+            byte[] buf = readLine(commIn, 4);
+
+            int c1 = (buf[0] & 0xFF) + ((buf[1] & 0xFF) << 8);
+            pw.printf("  Channel %2d/%d: %d counts\n", i, CHANNELS, c1);
+        }
+
+        commOut.write((byte)0x5A);
+        commOut.flush();
     }
 
     public static class Record {
