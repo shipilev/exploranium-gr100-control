@@ -132,7 +132,7 @@ public class BaseReader {
 
         serial.enableReceiveTimeout(5000); // beef up for measurement
 
-        for (int i = 0; i < 100; i++) {
+        while(true) {
             commOut.write((byte) (0x43));
             commOut.flush();
 

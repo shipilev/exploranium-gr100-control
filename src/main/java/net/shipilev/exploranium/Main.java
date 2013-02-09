@@ -32,11 +32,15 @@ public class Main {
         PrintWriter pw = new PrintWriter(System.out, true);
 
         pw.println("Exploranium GR-100 Control Software.");
-        pw.println("  This is the free software. Bug reports, feedbacks and suggestions are welcome at:");
+        pw.println("  This is the free software. Bug reports, feedbacks and suggestions:");
+        pw.println("  are welcome at:");
         pw.println("      https://github.com/shipilev/exploranium-gr100-control");
-        pw.println("  No warranty is provided for the item whatsoever, whether express, implied, or statutory, including, ");
-        pw.println("  but not limited to, any warranty of merchantability or fitness for a particular purpose or any warranty");
-        pw.println("  that the contents of the item will be error-free. You are using this software on your own risk.");
+        pw.println();
+        pw.println("  No warranty is provided for the item whatsoever, whether express");
+        pw.println("  implied, or statutory, including, but not limited to, any warranty");
+        pw.println("  of merchantability or fitness for a particular purpose or any warranty");
+        pw.println("  that the contents of the item will be error-free.");
+        pw.println("  You are using this software on your own risk.");
         pw.println();
 
         Options opts = new Options(args, pw);
