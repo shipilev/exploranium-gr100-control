@@ -31,6 +31,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 
 public class BaseReader {
@@ -83,13 +85,26 @@ public class BaseReader {
 
         // read all records
         while (!Arrays.equals(buf = readLine(commIn, 16), stop)) {
-            switch (buf[15]) {
+            ByteBuffer bbb = ByteBuffer.wrap(buf);
+            bbb.order(ByteOrder.LITTLE_ENDIAN);
+            switch (bbb.get(15)) {
                 case 'P':
+                    parseP(bbb);
+                    break;
                 case 'S':
-                    parseP(buf);
+                    parseS(bbb);
                     break;
                 case 'A':
-                    parseA(buf);
+                    parseA(bbb);
+                    break;
+                case 'B':
+                    parseB(bbb);
+                    break;
+                case 'W':
+                    parseW(bbb);
+                    break;
+                case 'T':
+                    parseT(bbb);
                     break;
                 default:
                     pw.printf("Unknown operation code '%s': %s\n", (char) buf[15], Arrays.toString(buf));
@@ -111,40 +126,65 @@ public class BaseReader {
 
             long time1 = System.currentTimeMillis();
             byte[] buf = readLine(commIn, 8);
+            long time2 = System.currentTimeMillis();
+
             int c1 = buf[0] + (buf[1] << 8);
             int c2 = buf[2] + (buf[3] << 8);
             int c3 = buf[4] + (buf[5] << 8);
-            long time2 = System.currentTimeMillis();
-
             int counts = c1 + c2 + c3;
-            pw.printf("%d counts / %d msec = %d cps = %d cpm\n",
+            pw.printf("  %d counts / %d msec = %d cps = %d cpm\n",
                     counts, time2 - time1, (counts * 1000) / (time2 - time1), 60 * (counts * 1000) / (time2 - time1));
 //            pw.println(Arrays.toString(buf));
         }
     }
 
-    private void parseA(byte[] buf) {
-        int maxGamma = (buf[6]) + (buf[7] << 8) + (buf[8] << 16) + (buf[9] << 24);
-        int maxDose =  (buf[10]) + (buf[11] << 8) + (buf[12] << 16) + (buf[13] << 24);
+    private void parseA(ByteBuffer buf) {
+        int maxGamma = buf.getInt(6);
+        int maxDose = buf.getInt(10);
 
-        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-        pw.printf("%-10s %d cps, %d nSv/h", "ALARM", maxGamma, maxDose);
+        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(0), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
+        pw.printf("%-20s peak %d cps, %d nSv/h", "ALARM", maxGamma, maxDose);
         pw.printf("\n");
     }
 
-    private void parseP(byte[] buf) {
-        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-        int voltage = (buf[6] & 0xFF);
-        short current = (short) (((short)buf[7] & 0xFF) | (((short)buf[8] & 0xFF) << 8));
-        pw.printf("%s ", Integer.toBinaryString(current));
-        pw.printf("%-10s %.2fV %d mA", "POWER-ON", voltage / 100.D, current);
+    private void parseP(ByteBuffer buf) {
+        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(0), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
+        int voltage = buf.getShort(6);
+        int current = buf.getShort(8);
+        pw.printf("%-20s bat=%.2fV drain=%dmA", "POWER-ON RESET", voltage / 100.D, current);
         pw.printf("\n");
     }
 
-    private static void parseS(PrintStream out, byte[] buf) {
-//        out.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
-//        out.printf("%-10s %d cps, %d nSv/h", "ALARM", maxGamma, maxDose);
-//        out.printf("\n");
+    private void parseS(ByteBuffer buf) {
+        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(0), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
+        int voltage = buf.getShort(6);
+        int current = buf.getShort(8);
+        pw.printf("%-20s bat=%.2fV drain=%dmA", "SOFTWARE RESET", voltage / 100.D, current);
+        pw.printf("\n");
+    }
+
+    private void parseB(ByteBuffer buf) {
+        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(0), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
+        int voltage = buf.getShort(6);
+        int current = buf.getShort(8);
+        pw.printf("%-20s bat=%.2fV drain=%dmA", "NEW BATTERY", voltage / 100.D, current);
+        pw.printf("\n");
+    }
+
+    private void parseW(ByteBuffer buf) {
+        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(0), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
+        int voltage = buf.getShort(6);
+        int current = buf.getShort(8);
+        pw.printf("%-20s bat=%.2fV drain=%dmA", "WATCHDOG RESET", voltage / 100.D, current);
+        pw.printf("\n");
+    }
+
+    private void parseT(ByteBuffer buf) {
+        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(0), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
+        int voltage = buf.getShort(6);
+        int current = buf.getShort(8);
+        pw.printf("%-20s bat=%.2fV drain=%dmA", "TIME SET", voltage / 100.D, current);
+        pw.printf("\n");
     }
 
     private static byte[] readLine(InputStream in, int count) throws IOException {
