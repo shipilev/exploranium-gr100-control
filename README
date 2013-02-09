@@ -15,7 +15,7 @@ Quick-start:
   1. Checkout and build:
       $ mvn clean install
 
-     ...or grab the binary bundle from here:
+     ...or grab the latest binary bundle from here:
       http://shipilev.net/builds/exploranium-gr100-control/
 
   2. Run:
