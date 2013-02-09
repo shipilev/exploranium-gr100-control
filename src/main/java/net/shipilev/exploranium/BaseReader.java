@@ -34,6 +34,7 @@ import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.Date;
 
 public class BaseReader {
 
@@ -170,9 +171,9 @@ public class BaseReader {
             int c2 = buf[2] + (buf[3] << 8);
             int c3 = buf[4] + (buf[5] << 8);
             int counts = c1 + c2 + c3;
-            pw.printf("  %d counts / %d msec = %d cps = %d cpm\n",
-                    counts, time2 - time1, (counts * 1000) / (time2 - time1), 60 * (counts * 1000) / (time2 - time1));
-//            pw.println(Arrays.toString(buf));
+            pw.printf("  %s, %4d counts, %4d cps, %6d cpm\n",
+                    new Date().toString(),
+                    counts, (counts * 1000) / (time2 - time1), 60 * (counts * 1000) / (time2 - time1));
         }
     }
 
@@ -190,7 +191,7 @@ public class BaseReader {
         int time = buf.getShort(10);
 
         pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(1), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
-        pw.printf("  %-20s %d nSv, %d sec, %.2f nSv/h", "DOSE", dose, time, dose * 3600.0D / time);
+        pw.printf("%4d nSv, %4d sec, %5.0f nSv/h", dose, time, dose * 3600.0D / time);
         pw.printf("\n");
     }
 
