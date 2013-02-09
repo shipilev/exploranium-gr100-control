@@ -31,9 +31,12 @@ public class Main {
     public static void main(String[] args) throws IOException, NoSuchPortException, UnsupportedCommOperationException, PortInUseException {
         PrintWriter pw = new PrintWriter(System.out, true);
 
-        pw.println("Exploranium GR-100: Control Software.");
-        pw.println("  This is the free software, use this on your own risk.");
-        pw.println("  Report bugs, feedbacks and suggestions to https://github.com/shipilev/exploranium-gr100-control");
+        pw.println("Exploranium GR-100 Control Software.");
+        pw.println("  This is the free software. Bug reports, feedbacks and suggestions are welcome at:");
+        pw.println("      https://github.com/shipilev/exploranium-gr100-control");
+        pw.println("  No warranty is provided for the item whatsoever, whether express, implied, or statutory, including, ");
+        pw.println("  but not limited to, any warranty of merchantability or fitness for a particular purpose or any warranty");
+        pw.println("  that the contents of the item will be error-free. You are using this software on your own risk.");
         pw.println();
 
         Options opts = new Options(args, pw);
