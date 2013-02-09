@@ -1,4 +1,4 @@
-Exploranium GR-100 Radiation Detector Control
+Exploranium GR-100 Radiation Detector Control Software
 ------------------------------------------------------------------------
 
 GR-100 is quite old, but still cool device with on-board CsI(Tl) and
@@ -20,8 +20,3 @@ Quick-start:
 
   2. Run:
       $ java -jar exploranium-gr100-control.jar -h
-
-*********************************************************************
-*** THIS IS AN EXPERIMENTAL SOFTWARE. IT CAN BREAK YOUR HARDWARE. ***
-***       DON'T GET BACK CRYING IT KILLED ALL YOUR KITTENS.       ***
-*********************************************************************
