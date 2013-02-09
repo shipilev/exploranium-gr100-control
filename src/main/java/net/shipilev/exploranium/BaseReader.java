@@ -52,6 +52,7 @@ public class BaseReader {
     private final PrintWriter pw;
     private final String port;
     private final List<Record> records = new ArrayList<Record>();
+    private boolean read;
 
     public BaseReader(Options opts, PrintWriter pw) {
         this.pw = pw;
@@ -66,20 +67,21 @@ public class BaseReader {
 
             commIn = serial.getInputStream();
             commOut = serial.getOutputStream();
-
-            readAll();
         } catch (NoSuchPortException e) {
             throw new RuntimeException(e);
         } catch (PortInUseException e) {
             throw new RuntimeException(e);
         } catch (UnsupportedCommOperationException e) {
             throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
     public void dumpDiagnostic() throws NoSuchPortException, PortInUseException, UnsupportedCommOperationException, IOException {
+        if (!read) {
+            read = true;
+            readAll();
+        }
+
         pw.println("Diagnostic log:");
 
         for (Record r : records) {
@@ -92,6 +94,11 @@ public class BaseReader {
     }
 
     public void dumpAlarms() throws NoSuchPortException, PortInUseException, UnsupportedCommOperationException, IOException {
+        if (!read) {
+            read = true;
+            readAll();
+        }
+
         pw.println("Alarm log:");
 
         for (Record r : records) {
@@ -104,6 +111,11 @@ public class BaseReader {
     }
 
     public void dumpDose() throws NoSuchPortException, PortInUseException, UnsupportedCommOperationException, IOException {
+        if (!read) {
+            read = true;
+            readAll();
+        }
+
         pw.println("Accumulated dose log:");
 
         for (Record r : records) {
@@ -185,7 +197,7 @@ public class BaseReader {
             records.add(parse(buf));
         }
 
-        pw.println("OK");
+        pw.println(" OK");
         pw.println();
     }
 

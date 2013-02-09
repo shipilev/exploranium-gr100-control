@@ -60,24 +60,16 @@ public class Options {
         OptionParser parser = new OptionParser();
         parser.formatHelpWith(new OptFormatter());
 
-        String s = selectPort();
+        OptionSpec<String> port = parser.accepts("p", "Communication port (e.g. COM1, /dev/ttyUSB0, etc).")
+                .withRequiredArg().ofType(String.class).describedAs("PORT").required();
 
-        ArgumentAcceptingOptionSpec<String> spec = parser.accepts("p", "Communication port")
-                .withRequiredArg().ofType(String.class).describedAs("PORT");
-        OptionSpec<String> port;
-        if (s != null) {
-            port = spec.defaultsTo(selectPort());
-        } else {
-            port = spec.required();
-        }
+        parser.accepts("l", "Live data streaming.");
+        parser.accepts("d", "Dump accumulated dose log.");
+        parser.accepts("i", "Dump diagnostic info.");
+        parser.accepts("a", "Dump registered alarms.");
 
-        parser.accepts("l", "Live data streaming");
-        parser.accepts("d", "Dump dose");
-        parser.accepts("i", "Dump info");
-        parser.accepts("a", "Dump alarms");
-
-        parser.accepts("v", "Be verbose");
-        parser.accepts("h", "Print this help");
+        parser.accepts("v", "Be verbose.");
+        parser.accepts("h", "Print this help.");
 
         OptionSet set;
         try {
