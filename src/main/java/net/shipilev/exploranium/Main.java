@@ -32,8 +32,8 @@ public class Main {
         PrintWriter pw = new PrintWriter(System.out, true);
 
         pw.println("Exploranium GR-100 Control Software.");
-        pw.println("  This is the free software. Bug reports, feedbacks and suggestions:");
-        pw.println("  are welcome at:");
+        pw.println("  This is the free software. Bug reports, feedbacks and suggestions");
+        pw.println("  are always welcome at:");
         pw.println("      https://github.com/shipilev/exploranium-gr100-control");
         pw.println();
         pw.println("  No warranty is provided for the item whatsoever, whether express");
