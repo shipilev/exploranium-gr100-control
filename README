@@ -12,10 +12,14 @@ multitude of platforms (I would go for Python, but Java seems to offer
 enough functionality to do this in less messier fashion).
 
 Quick-start:
-  $ mvn clean install
+  1. Checkout and build:
+      $ mvn clean install
 
-...or grab the binary bundle from here:
-  http://shipilev.net/builds/exploranium-gr100-control/
+     ...or grab the binary bundle from here:
+      http://shipilev.net/builds/exploranium-gr100-control/
+
+  2. Run:
+      $ java -jar exploranium-gr100-control.jar -h
 
 *********************************************************************
 *** THIS IS AN EXPERIMENTAL SOFTWARE. IT CAN BREAK YOUR HARDWARE. ***
