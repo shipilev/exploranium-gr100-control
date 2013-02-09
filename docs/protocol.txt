@@ -1,54 +1,57 @@
-(ЧЕРНОВИК)
+This is the exploratory log for decoding GR-100 RS-232 protocol.
+It is probably incomplete, and inconsistent, and sometimes wrong.
+Use with care.
 
-******* Тест пищалки
+******* Buzzer test
 
  >>> 42 (ascii 'B')
- [пищит]
+ [beeps]
  <<< AA
 
-******* Тест вибратора
+******* Vibrator test
 
  >>> 56 (ascii 'V')
- [вибрирует]
+ [vibrates]
  <<< AA
 
-******* Тест индикатора G
+******* "G" LED test
 
  >>> 47 (ascii 'G')
- [мигает]
+ [flashes "G"]
  <<< AA
 
-******* Тест индикатора N
+******* "N" LED test
 
  >>> 4E (ascii 'N')
- [мигает]
+ [flashes "N"]
  <<< AA
 
-******* Тест кнопки
+******* Button test
 
  >>> 4D (ascii 'M')
  <<< AA
- <<< FF [при нажатии кнопки]
- далее варианты:
-   <<< 01 [при отпускании 'short']
-   <<< 02 [при долгом нажатии 'long']
+ <<< FF [button down]
+ then, two cases:
+   <<< 01 [button release 'short']
+   <<< 02 [button release 'long']
  >>> 5A (ascii 'Z')
 
-******* Запрос температуры
+******* Request temperature
+ (used to adjust LCD contrast)
 
  >>> 54 (ascii 'T')
  <<< AA
  <<< $XX $YY 
       F9  07 = 20.4 C
 
-******* Запрос состояния батареи
+******* Battery voltage
 
  >>> 59 (ascii 'Y')
  <<< AA
  <<< $XX $YY 
-      88  00 = 1.36V [видимо, $XX/100]
+      88  00 = 1.36V [supposedly, $XX/100]
 
-******* Запрос общего статуса (WTF?)
+******* Common status (WTF?)
 
  >>> 46
  <<< AA
@@ -57,63 +60,70 @@
     DEF 1, LOW 0, HIGH 0, CURR 0
     DS2438 serial# 4681511 
 
-******* Тестирование LCD
- (показывает всякую фигню)
+******* LCD test
+ (shows some garbage on LCD)
 
- >>> 4C (ascii 'L') [старт]
- <<< AA
- >>> 55 (ascii 'U') [стоп]
- <<< AA
-
-******* Контраст экрана:
- >>> 63 (XX)
+ Start:
+ >>> 4C (ascii 'L')
  <<< AA
 
-(XX) -- один байт, описывает контрастность
-   максимум в интерфейсе dec(42) = hex(2A)
-   минимум в интерфейсе dec(22) = hex(16)
-   в инструкции минимумы/максимумы -- dec(0)/dec(64), соответственно
+ Stop:
+ >>> 55 (ascii 'U')
+ <<< AA
 
+******* LCD contrast:
+ >>> 63 $XX
+ <<< AA
 
-****** Управление backlight
- >>> 62 30 (ascii 'b0') [выключить]
- >>> 62 31 (ascii 'b1') [включить]
+$XX -- contrast setting
+   GUI allows minimum dec(22) = hex(16), maximum dec(42) = hex(2A)
+   Manual mentions minimum dec(0), maximum dec(64)
 
+****** Backlight control
+ Turn off:
+ >>> 62 30 (ascii 'b0')
 
-******* Чтение RTC
+ Turn on:
+ >>> 62 31 (ascii 'b1')
+
+******* Read RTC
  >>> 41 (ascii 'A')
  <<< AA
  <<< 0D 02 08 17 21 01 
-     YY MM DD HH MM SS <--- интерпретация
+     YY MM DD HH MM SS <--- value interpretation
 
 
-******* Установка RTC
+******* Set RTC
  >>> 61 (ascii 'a')
  <<< AA
  >>> $YY $MM $DD $HH $MM $SS
 
 
-******* Чтение счётчиков
+******* Read counters
  >>> 43 (ascii 'C')
  <<< AA
- [примерно секунда задержки]
+ [~1.8s delay]
  <<< 35 00 2B 00 05 00 00 00 
-     ^^^^^--------------------- гамма-канал 1?
-           ^^^^^--------------- гамма-канал 2?
-                 ^^^^^--------- гамма-канал 3?
-                       ^^^^^--- нейтронный канал?
+     ^^^^^--------------------- gamma channel 1?
+           ^^^^^--------------- gamma channel 2?
+                 ^^^^^--------- gamma channel 3?
+                       ^^^^^--- neutron channel?
 
- Гуй как-то хитро считает МЭД.
+ Q: What are the energies for each channel?
+ Q: How to calculate dose rate?
 
-******* Построение гамма-спектра???
+******* Gamma spectrum
 
+ Initiate:
  >>> 53 (ascii 'S')
  <<< AA
+
+ Set parameters:
  >>> 0A 00 
-     ^^^^^-------- время на канал в секундах?
+     ^^^^^-------- seconds per channel
 
  >>>
- [группы по четыре байта]
+ [four bytes per group, with delays]
  93 01 9D 01 67 01 A3 01 FA 00 9F 01 AC 00 B7 01
  75 00 C0 01 66 00 B7 01 41 00 90 01 32 00 B7 01
  27 00 89 01 22 00 59 01 26 00 36 01 16 00 26 01
@@ -126,6 +136,7 @@
  03 00 47 00 02 00 36 00 01 00 3E 00 00 00 34 00
  01 00 35 00                                    
 
+ Terminate:
  >>> 5A  (ascii 'Z') 
  
 RAW DATA:
@@ -134,32 +145,36 @@ RAW DATA:
 20:    13    16    13     8     7      11     4     6     3     5
 30:     4     3     4     3     5       2     3     2     1     0
 40:     1 
+     
+ Q: First word in 4-byte group seems to match raw data.
+    Second word in 4-byte group -- wtf?
 
- первая пара байт в группе соответствуют raw data;
- вторая пара байт -- wtf?!
 
-
-******* Чтение настроек
+******* Read settings
  >>> 4A
- <<<
+ <<< AA
+ <<< 
+    45 05 1C 14 F4 06 FF 0F 32 04 0A 0A 03 08 87   
+ 00 33 36 33 34 31 38 30 00 0D 02 08 17 0C 39 EE   
 
- AA 45 05 1C 14 F4 06 FF 0F 32 04 0A 0A 03 08 87   ªE...ô.ÿ.2.....
- 00 33 36 33 34 31 38 30 00 0D 02 08 17 0C 39 EE   .3634180......9î
+ Q: Interpret the bytes!
 
-******* Запись настроек
+******* Write settings
  >>> 4B
  <<< AA
  >>> (settings)
  <<< AA
 
-*******  Чтение диагностики/алярмов:
- (одна и та же команда, ответы отличаются кодом операции)
+******* Read diagnostics/alarm log
+ (multiple replies, differ on operation code) 
 
+ Initiate:
  >>> 50 
+ 
+ Read
+ <<< AA                                                
 
- <<<
- AA                                                
-
+ <<< (preamble)
  50 00 10 00 0D 02 07 15 2A 26 32 0E 31 38 30 30   [prolog]
  ^^^^^^^^^^^-------------------------------------- memory locations
              ^^^^^^^^----------------------------- date (DD MM YY)
@@ -168,6 +183,7 @@ RAW DATA:
                                      ^^^^^^^^----- firmware version (3 ASCII letters)
                                               ^^-- preamble code (stop byte)
 
+ <<< 
  0D 02 07 15 2A 3B 86 00 E1 FF 00 00 01 0C FF 50   [power-on reset record]
  ^^^^^^^^----------------------------------------- date
           ^^^^^^^^-------------------------------- time
@@ -178,6 +194,7 @@ RAW DATA:
                                            ^^----- ICA
                                               ^^-- operation code 'P'
 
+ <<<
  0D 02 08 0C 04 1C 7C 00 95 FF 00 00 01 0C FF 53  [software reset record]
  ^^^^^^^^----------------------------------------- date
           ^^^^^^^^-------------------------------- time
@@ -188,6 +205,7 @@ RAW DATA:
                                            ^^----- ICA
                                               ^^-- operation code 'S'
 
+ <<<
  0D 02 08 12 01 16 4C 00 00 00 24 01 00 00 FF 41  [alarm log record]
 
  ^^^^^^^^----------------------------------------- date
@@ -198,7 +216,7 @@ RAW DATA:
                                            ^^----- ICA
                                               ^^-- operation code 'A'
 
-
+ <<<
  01 01 01 00 00 00 83 00 9C FF 00 00 00 00 00 54  [time reset]
  ^^^^^^^^----------------------------------------- date
           ^^^^^^^^-------------------------------- time
@@ -206,6 +224,7 @@ RAW DATA:
                          ^^^^^-------------------- battery current (two-complement?)
                                               ^^-- operation code 'T'
 
+ <<<
  01 01 01 00 00 03 82 00 9A FF 00 00 01 0C FF 42  [new battery inserted]
  ^^^^^^^^----------------------------------------- date
           ^^^^^^^^-------------------------------- time
@@ -216,6 +235,7 @@ RAW DATA:
                                            ^^----- ICA
                                               ^^-- operation code 'B'
 
+ <<<
  0D 02 08 17 38 32 7D 00 89 FF 00 00 FF 00 FE 57  [watchdog reset]
  ^^^^^^^^----------------------------------------- date
           ^^^^^^^^-------------------------------- time
@@ -225,17 +245,20 @@ RAW DATA:
                                            ^^----- ??
                                               ^^-- operation code 'W'
 
+ <<< (epilog)
  AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA   [epilog]
 
 
-******** Чтение дозы:
+******** Accumulated dose log
 
  >>> 79
  <<< AA 
+
  <<<
  20 10 10 10 0D 02 07 15 2A 28 32 0E 31 38 30 31  [prolog]
                                               ^^-- preamble code (stop byte)
 
+ <<<
  0D 02 07 16 00 00 08 00 00 00 DC 00 81 00 FF 44  [log records]
  ^^^^^^^^----------------------------------------- date
           ^^^^^^^^-------------------------------- time
@@ -245,6 +268,5 @@ RAW DATA:
                                            ^^----- ICA
                                               ^^-- operation code (always "D"?)
 
+ <<<
  AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA  [epilog]
-
-
