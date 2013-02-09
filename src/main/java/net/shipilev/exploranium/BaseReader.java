@@ -29,20 +29,29 @@ import gnu.io.UnsupportedCommOperationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 public class BaseReader {
+
+    public static final byte[] STOP = new byte[16];
+    static {
+        for (int i = 0; i < 16; i++) {
+            STOP[i] = (byte) 0xAA;
+        }
+    }
 
     private final InputStream commIn;
     private final OutputStream commOut;
     private final RXTXPort serial;
     private final PrintWriter pw;
     private final String port;
+    private final List<Record> records = new ArrayList<Record>();
 
     public BaseReader(Options opts, PrintWriter pw) {
         this.pw = pw;
@@ -52,16 +61,20 @@ public class BaseReader {
             CommPortIdentifier ident = CommPortIdentifier.getPortIdentifier(port);
 
             serial = ident.open("NRSerialPort", 2000);
-            serial.enableReceiveTimeout(5000);
+            serial.enableReceiveTimeout(100);
             serial.setSerialPortParams(2400, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
             commIn = serial.getInputStream();
             commOut = serial.getOutputStream();
+
+            readAll();
         } catch (NoSuchPortException e) {
             throw new RuntimeException(e);
         } catch (PortInUseException e) {
             throw new RuntimeException(e);
         } catch (UnsupportedCommOperationException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -69,131 +82,44 @@ public class BaseReader {
     public void dumpDiagnostic() throws NoSuchPortException, PortInUseException, UnsupportedCommOperationException, IOException {
         pw.println("Diagnostic log:");
 
-        commOut.write((byte) (0x50));
-        commOut.flush();
-
-        int h = commIn.read();
-        if (h != 0xAA) {
-            pw.println("Unable to read.");
-        }
-
-        byte[] stop = new byte[16];
-        for (int i = 0; i < 16; i++) {
-            stop[i] = (byte) 0xAA;
-        }
-
-        // read prolog
-        byte[] buf = readLine(commIn, 16);
-        pw.printf("%02d/%02d/%02d %02d:%02d:%02d\n", 2000 + buf[4], buf[5], buf[6], buf[7], buf[8], buf[9]);
-
-        // read all records
-        while (!Arrays.equals(buf = readLine(commIn, 16), stop)) {
-            ByteBuffer bbb = ByteBuffer.wrap(buf);
-            bbb.order(ByteOrder.LITTLE_ENDIAN);
-            switch (bbb.get(15)) {
-                case 'P':
-                    parseP(bbb);
-                    break;
-                case 'S':
-                    parseS(bbb);
-                    break;
-                case 'A':
-                    // omit
-                    break;
-                case 'B':
-                    parseB(bbb);
-                    break;
-                case 'W':
-                    parseW(bbb);
-                    break;
-                case 'T':
-                    parseT(bbb);
-                    break;
-                default:
-                    pw.printf("Unknown operation code '%s': %s\n", (char) buf[15], Arrays.toString(buf));
+        for (Record r : records) {
+            if (!(r instanceof AlarmRecord) && !(r instanceof DoseRecord)) {
+                pw.print("  ");
+                pw.println(r);
             }
         }
+        pw.println();
     }
 
     public void dumpAlarms() throws NoSuchPortException, PortInUseException, UnsupportedCommOperationException, IOException {
         pw.println("Alarm log:");
 
-        commOut.write((byte) (0x50));
-        commOut.flush();
-
-        int h = commIn.read();
-        if (h != 0xAA) {
-            pw.println("Unable to read.");
-        }
-
-        byte[] stop = new byte[16];
-        for (int i = 0; i < 16; i++) {
-            stop[i] = (byte) 0xAA;
-        }
-
-        // read prolog
-        byte[] buf = readLine(commIn, 16);
-        pw.printf("%02d/%02d/%02d %02d:%02d:%02d\n", 2000 + buf[4], buf[5], buf[6], buf[7], buf[8], buf[9]);
-
-        // read all records
-        while (!Arrays.equals(buf = readLine(commIn, 16), stop)) {
-            ByteBuffer bbb = ByteBuffer.wrap(buf);
-            bbb.order(ByteOrder.LITTLE_ENDIAN);
-            switch (bbb.get(15)) {
-                case 'P':
-                case 'S':
-                case 'B':
-                case 'W':
-                case 'T':
-                    // omit
-                    break;
-                case 'A':
-                    parseA(bbb);
-                    break;
-                default:
-                    pw.printf("Unknown operation code '%s': %s\n", (char) buf[15], Arrays.toString(buf));
+        for (Record r : records) {
+            if (r instanceof PrologueRecord || r instanceof AlarmRecord) {
+                pw.print("  ");
+                pw.println(r);
             }
         }
-
+        pw.println();
     }
 
     public void dumpDose() throws NoSuchPortException, PortInUseException, UnsupportedCommOperationException, IOException {
         pw.println("Accumulated dose log:");
 
-        commOut.write((byte) (0x79));
-        commOut.flush();
-
-        int h = commIn.read();
-        if (h != 0xAA) {
-            pw.println("Unable to read.");
-        }
-
-        byte[] stop = new byte[16];
-        for (int i = 0; i < 16; i++) {
-            stop[i] = (byte) 0xAA;
-        }
-
-        // read prolog
-        byte[] buf = readLine(commIn, 16);
-        pw.printf("%02d/%02d/%02d %02d:%02d:%02d\n", 2000 + buf[4], buf[5], buf[6], buf[7], buf[8], buf[9]);
-
-        // read all records
-        while (!Arrays.equals(buf = readLine(commIn, 16), stop)) {
-            ByteBuffer bbb = ByteBuffer.wrap(buf);
-            bbb.order(ByteOrder.LITTLE_ENDIAN);
-            switch (bbb.get(15)) {
-                case 'D':
-                    parseD(bbb);
-                    break;
-                default:
-                    pw.printf("Unknown operation code '%s': %s\n", (char) buf[15], Arrays.toString(buf));
+        for (Record r : records) {
+            if (r instanceof PrologueRecord || r instanceof DoseRecord) {
+                pw.print("  ");
+                pw.println(r);
             }
         }
-
+        pw.println();
     }
 
     public void liveStream() throws IOException {
         pw.println("Live counts stream:");
+
+        serial.enableReceiveTimeout(5000); // beef up for measurement
+
         for (int i = 0; i < 100; i++) {
             commOut.write((byte) (0x43));
             commOut.flush();
@@ -218,62 +144,193 @@ public class BaseReader {
         }
     }
 
-    private void parseA(ByteBuffer buf) {
-        int maxGamma = buf.getInt(6);
-        int maxDose = buf.getInt(10);
+    private void readAll() throws IOException {
+        pw.print("Reading data... ");
+        pw.flush();
 
-        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(1), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
-        pw.printf("%-20s peak %d cps, %d nSv/h", "ALARM", maxGamma, maxDose);
-        pw.printf("\n");
+        pw.print(" (diagnostic) ");
+        pw.flush();
+
+        commOut.write((byte) (0x50));
+        commOut.flush();
+
+        int h = commIn.read();
+        if (h != 0xAA) {
+            throw new IOException("Unable to read.");
+        }
+
+        // read all records
+        byte[] buf;
+        while (!Arrays.equals(buf = readLine(commIn, 16), STOP)) {
+            pw.print(".");
+            pw.flush();
+            records.add(parse(buf));
+        }
+
+        pw.print(" (dose) ");
+        pw.flush();
+
+        commOut.write((byte) (0x79));
+        commOut.flush();
+
+        h = commIn.read();
+        if (h != 0xAA) {
+            throw new IOException("Unable to read.");
+        }
+
+        // read all records
+        while (!Arrays.equals(buf = readLine(commIn, 16), STOP)) {
+            pw.print(".");
+            pw.flush();
+            records.add(parse(buf));
+        }
+
+        pw.println("OK");
+        pw.println();
     }
 
-    private void parseD(ByteBuffer buf) {
-        int dose = buf.getInt(6);
-        int time = buf.getShort(10);
-
-        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(1), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
-        pw.printf("%4d nSv, %4d sec, %5.0f nSv/h", dose, time, dose * 3600.0D / time);
-        pw.printf("\n");
+    final Record parse(byte[] buf) {
+        switch (buf[15]) {
+            case 0x30:
+                return new PrologueRecord(buf);
+            case 'P':
+                return new PowerResetRecord(buf);
+            case 'S':
+                return new SoftResetRecord(buf);
+            case 'T':
+                return new TimeSetRecord(buf);
+            case 'W':
+                return new WatchdogResetRecord(buf);
+            case 'B':
+                return new NewBatteryRecord(buf);
+            case 'A':
+                return new AlarmRecord(buf);
+            case 'D':
+                return new DoseRecord(buf);
+            default:
+                return new UnknownRecord(buf);
+        }
     }
 
-    private void parseP(ByteBuffer buf) {
-        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(1), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
-        int voltage = buf.getShort(6);
-        int current = buf.getShort(8);
-        pw.printf("%-20s bat=%.2fV drain=%dmA", "POWER-ON RESET", voltage / 100.D, current);
-        pw.printf("\n");
+    public static class Record {
+        protected final String meta;
+        protected final ByteBuffer b;
+
+        public Record(byte[] buf, String m) {
+            b = ByteBuffer.wrap(buf);
+            b.order(ByteOrder.LITTLE_ENDIAN);
+            meta = m;
+        }
+
+        public String toString() { return ""; }
     }
 
-    private void parseS(ByteBuffer buf) {
-        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(1), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
-        int voltage = buf.getShort(6);
-        int current = buf.getShort(8);
-        pw.printf("%-20s bat=%.2fV drain=%dmA", "SOFTWARE RESET", voltage / 100.D, current);
-        pw.printf("\n");
+    public static class TimedRecord extends Record {
+        private final String time;
+        public TimedRecord(byte[] buf, String m) {
+            super(buf, m);
+            time = String.format("%4d/%02d/%02d %02d:%02d:%02d   %-15s ", 2000 + b.get(0), b.get(1), b.get(2), b.get(3), b.get(4), b.get(5), meta);
+        }
+        public String toString() {
+            return super.toString() + time;
+        }
     }
 
-    private void parseB(ByteBuffer buf) {
-        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(1), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
-        int voltage = buf.getShort(6);
-        int current = buf.getShort(8);
-        pw.printf("%-20s bat=%.2fV drain=%dmA", "NEW BATTERY", voltage / 100.D, current);
-        pw.printf("\n");
+    public static class UnknownRecord extends Record {
+        public UnknownRecord(byte[] buf) {
+            super(buf, "UNKNOWN");
+        }
+        public String toString() {
+            return super.toString() + String.format("Unknown operation code '%s': %s", (char) b.get(15), Arrays.toString(b.array()));
+        }
     }
 
-    private void parseW(ByteBuffer buf) {
-        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(1), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
-        int voltage = buf.getShort(6);
-        int current = buf.getShort(8);
-        pw.printf("%-20s bat=%.2fV drain=%dmA", "WATCHDOG RESET", voltage / 100.D, current);
-        pw.printf("\n");
+    public static class VoltageTimedRecord extends TimedRecord {
+        private final int current;
+        private final int voltage;
+        public VoltageTimedRecord(byte[] buf, String meta) {
+            super(buf, meta);
+            voltage = b.getShort(6);
+            current = b.getShort(8);
+        }
+
+        public String toString() {
+            return super.toString() + String.format("bat=%.2fV, current=%dmA", voltage / 100.0D, current);
+        }
     }
 
-    private void parseT(ByteBuffer buf) {
-        pw.printf("%4d/%02d/%02d %02d:%02d:%02d ", 2000 + buf.get(0), buf.get(1), buf.get(2), buf.get(3), buf.get(4), buf.get(5));
-        int voltage = buf.getShort(6);
-        int current = buf.getShort(8);
-        pw.printf("%-20s bat=%.2fV drain=%dmA", "TIME SET", voltage / 100.D, current);
-        pw.printf("\n");
+    public static class PowerResetRecord extends VoltageTimedRecord {
+        public PowerResetRecord(byte[] buf) {
+            super(buf, "POWER RESET");
+        }
+    }
+
+    public static class SoftResetRecord extends VoltageTimedRecord {
+        public SoftResetRecord(byte[] buf) {
+            super(buf, "SOFT RESET");
+        }
+    }
+
+    public static class TimeSetRecord extends VoltageTimedRecord {
+        public TimeSetRecord(byte[] buf) {
+            super(buf, "TIME SET");
+        }
+    }
+
+    public static class WatchdogResetRecord extends VoltageTimedRecord {
+        public WatchdogResetRecord(byte[] buf) {
+            super(buf, "WATCHDOG RESET");
+        }
+    }
+
+    public static class NewBatteryRecord extends VoltageTimedRecord {
+        public NewBatteryRecord(byte[] buf) {
+            super(buf, "NEW BATTERY");
+        }
+    }
+
+    public static class DoseRecord extends TimedRecord {
+        private final int dose;
+        private final int time;
+        public DoseRecord(byte[] buf) {
+            super(buf, "DOSE");
+            dose = b.getInt(6);
+            time = b.getShort(10);
+        }
+
+        public String toString() {
+            return super.toString() + String.format("%4d nSv, %4d sec, %5.0f nSv/h", dose, time, dose * 3600.0D / time);
+        }
+    }
+
+    public static class AlarmRecord extends TimedRecord {
+        private final int maxGamma;
+        private final int maxDose;
+        public AlarmRecord(byte[] buf) {
+            super(buf, "ALARM");
+            maxGamma = b.getInt(6);
+            maxDose = b.getInt(10);
+        }
+
+        public String toString() {
+            return super.toString() + String.format("%d cps, %d nSv/h", maxGamma, maxDose);
+        }
+    }
+
+    public static class PrologueRecord extends Record {
+        private final String time;
+        private final String serial;
+        private final String firmware;
+
+        public PrologueRecord(byte[] buf) {
+            super(buf, "");
+            time = String.format("%4d/%02d/%02d %02d:%02d:%02d", 2000 + b.get(4), b.get(5), b.get(6), b.get(7), b.get(8), b.get(9));
+            serial = String.valueOf(b.getShort(10));
+            firmware = "" + (char) b.get(12) + "V" + (char) b.get(13) +(char) b.get(14);
+        }
+        public String toString() {
+            return super.toString() + String.format("Log starts %s, Serial No: %5s, Firmware Rev. %5s", time, serial, firmware);
+        }
     }
 
     private static byte[] readLine(InputStream in, int count) throws IOException {
@@ -310,4 +367,5 @@ public class BaseReader {
 
         serial.close();
     }
+
 }
