@@ -40,6 +40,7 @@ public class Options {
     private boolean liveStream;
     private boolean dumpInfo;
     private boolean dumpDose;
+    private boolean dumpAlarm;
 
     public Options(String[] args, PrintWriter pw) {
         this.args = args;
@@ -73,6 +74,7 @@ public class Options {
         parser.accepts("l", "Live data streaming");
         parser.accepts("d", "Dump dose");
         parser.accepts("i", "Dump info");
+        parser.accepts("a", "Dump alarms");
 
         parser.accepts("v", "Be verbose");
         parser.accepts("h", "Print this help");
@@ -95,6 +97,7 @@ public class Options {
         this.port = set.valueOf(port);
         this.liveStream = set.has("l");
         this.dumpInfo = set.has("i");
+        this.dumpAlarm = set.has("a");
         this.dumpDose = set.has("d");
         return true;
     }
@@ -113,5 +116,9 @@ public class Options {
 
     public boolean shouldDumpDose() {
         return dumpDose;
+    }
+
+    public boolean shouldDumpAlarms() {
+        return dumpAlarm;
     }
 }

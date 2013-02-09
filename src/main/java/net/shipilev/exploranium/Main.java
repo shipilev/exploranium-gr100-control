@@ -48,7 +48,10 @@ public class Main {
                 reader.liveStream();
             }
             if (opts.shouldDumpInfo()) {
-                reader.dump();
+                reader.dumpDiagnostic();
+            }
+            if (opts.shouldDumpAlarms()) {
+                reader.dumpAlarms();
             }
             if (opts.shouldDumpDose()) {
                 reader.dumpDose();
