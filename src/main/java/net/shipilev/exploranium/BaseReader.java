@@ -26,6 +26,8 @@ import gnu.io.RXTXPort;
 import gnu.io.SerialPort;
 import gnu.io.UnsupportedCommOperationException;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -67,8 +69,8 @@ public class BaseReader {
             serial.enableReceiveTimeout(1000);
             serial.setSerialPortParams(2400, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
-            commIn = serial.getInputStream();
-            commOut = serial.getOutputStream();
+            commIn = new BufferedInputStream(serial.getInputStream());
+            commOut = new BufferedOutputStream(serial.getOutputStream());
 
             tryReadOutStale();
         } catch (NoSuchPortException e) {
