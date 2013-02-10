@@ -147,6 +147,10 @@ public class BaseReader {
 
         serial.enableReceiveTimeout(5000); // beef up for measurement
 
+        CircularBuffer<Timing> average5 = new CircularBuffer<Timing>(5);
+        CircularBuffer<Timing> average15 = new CircularBuffer<Timing>(15);
+        CircularBuffer<Timing> average60 = new CircularBuffer<Timing>(60);
+
         while(true) {
             commOut.write((byte) (0x43));
             commOut.flush();
@@ -165,10 +169,32 @@ public class BaseReader {
             int c2 = buf[2] + (buf[3] << 8);
             int c3 = buf[4] + (buf[5] << 8);
             int counts = c1 + c2 + c3;
-            pw.printf("  %s, %4d counts, %4d cps, %6d cpm\n",
+            long duration = time2 - time1;
+
+            Timing t = new Timing(duration, 60 * 1000 * counts);
+            average5.add(t);
+            average15.add(t);
+            average60.add(t);
+
+            pw.printf("  %s, %4d counts, %4d cps, %6d cpm, %6d cpm (5s), %6d cpm (15s), %6d cpm (60s)\n",
                     new Date().toString(),
-                    counts, (counts * 1000) / (time2 - time1), 60 * (counts * 1000) / (time2 - time1));
+                    counts, (counts * 1000) / duration, 60 * (counts * 1000) / duration,
+                    cpm(average5),
+                    cpm(average15),
+                    cpm(average60)
+                    );
         }
+    }
+
+    public long cpm(CircularBuffer<Timing> buf) {
+        long totalCounts = 0;
+        long totalDuration = 0;
+        for (Timing t : buf.getAll()) {
+            totalCounts += t.counts;
+            totalDuration += t.duration;
+        }
+
+        return totalCounts / totalDuration;
     }
 
     private void readAll() throws IOException {
