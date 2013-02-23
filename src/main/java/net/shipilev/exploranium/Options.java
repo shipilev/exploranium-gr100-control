@@ -66,8 +66,8 @@ public class Options {
         OptionSpec<String> port = parser.accepts("p", "Communication port (e.g. COM1, /dev/ttyUSB0, etc).")
                 .withRequiredArg().ofType(String.class).describedAs("PORT").required();
 
-        OptionSpec<Integer> spectrumDuration = parser.accepts("s", "Gather gamma-spectrum with given time per channel.")
-                .withOptionalArg().ofType(Integer.class).describedAs("secs-per-channel").defaultsTo(1);
+        OptionSpec<Integer> spectrumDuration = parser.accepts("s", "Gather gamma-spectrum for a given time.")
+                .withOptionalArg().ofType(Integer.class).describedAs("seconds").defaultsTo(1);
 
         parser.accepts("l", "Live data streaming.");
         parser.accepts("d", "Dump accumulated dose log.");

@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class BaseReader {
 
@@ -270,33 +271,49 @@ public class BaseReader {
     public void gatherSpectrum() throws IOException {
         final int CHANNELS = 41;
 
-        int secsPerChannel = opts.getSpectrumDuration();
-        serial.enableReceiveTimeout(secsPerChannel * 2 * 1000); // beef up for measurement
+        int time = opts.getSpectrumDuration();
+        serial.enableReceiveTimeout(1 * 2 * 1000); // beef up for measurement
 
-        pw.printf("Gathering gamma spectrum (%d seconds per channel)\n", secsPerChannel);
+        pw.printf("Gathering gamma spectrum (for at least %d seconds)\n", time);
 
-        commOut.write((byte) 0x53);
-        commOut.flush();
+        int[] acc = new int[CHANNELS];
 
-        int h = commIn.read();
-        if (h != 0xAA) {
-            pw.println("Unable to read from " + port);
-            return;
+        long targetTime = System.nanoTime() + TimeUnit.SECONDS.toNanos(time);
+        while (targetTime > System.nanoTime()) {
+            commOut.write((byte) 0x53);
+            commOut.flush();
+
+            int h = commIn.read();
+            if (h != 0xAA) {
+                pw.println("Unable to read from " + port);
+                return;
+            }
+
+            final int secsPerChannel = 1;
+            commOut.write((byte)(secsPerChannel & 0xFF));
+            commOut.write((byte)((secsPerChannel >> 8) & 0xFF));
+            commOut.flush();
+
+            pw.print("Accumulating: ");
+            for (int i = 0; i < CHANNELS; i++) {
+                byte[] buf = readLine(commIn, 4);
+
+                int c1 = (buf[0] & 0xFF) + ((buf[1] & 0xFF) << 8);
+                acc[i] = c1;
+
+                pw.print(".");
+                pw.flush();
+            }
+            pw.println();
+
+            commOut.write((byte)0x5A);
+            commOut.flush();
+
+            for (int i = 0; i < CHANNELS; i++) {
+                pw.printf("Channel %d/%d: %d counts\n", (i+1), CHANNELS, acc[i]);
+            }
+            pw.flush();
         }
-
-        commOut.write((byte)(secsPerChannel & 0xFF));
-        commOut.write((byte)((secsPerChannel >> 8) & 0xFF));
-        commOut.flush();
-
-        for (int i = 1; i <= CHANNELS; i++) {
-            byte[] buf = readLine(commIn, 4);
-
-            int c1 = (buf[0] & 0xFF) + ((buf[1] & 0xFF) << 8);
-            pw.printf("  Channel %2d/%d: %d counts\n", i, CHANNELS, c1);
-        }
-
-        commOut.write((byte)0x5A);
-        commOut.flush();
     }
 
     public void dumpSettings() throws IOException {
