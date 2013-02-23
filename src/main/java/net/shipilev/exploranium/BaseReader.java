@@ -320,7 +320,7 @@ public class BaseReader {
 
             final int maxWidth = 50;
             for (int i = 0; i < CHANNELS; i++) {
-                pw.printf("Ch: %2d, %3d cnt: ", (i+1), acc[i]);
+                pw.printf("Ch: %2d, %5d cnts: ", (i+1), acc[i]);
                 for (int c = 0; c < acc[i] * maxWidth / max; c++) {
                     pw.print('*');
                 }
