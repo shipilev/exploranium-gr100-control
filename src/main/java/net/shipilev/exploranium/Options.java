@@ -44,6 +44,7 @@ public class Options {
     private boolean dumpSettings;
     private boolean gatherSpectrum;
     private int spectrumDuration;
+    private int spectrumSecsPerChannel;
 
     public Options(String[] args, PrintWriter pw) {
         this.args = args;
@@ -66,8 +67,8 @@ public class Options {
         OptionSpec<String> port = parser.accepts("p", "Communication port (e.g. COM1, /dev/ttyUSB0, etc).")
                 .withRequiredArg().ofType(String.class).describedAs("PORT").required();
 
-        OptionSpec<Integer> spectrumDuration = parser.accepts("s", "Gather gamma-spectrum for a given time.")
-                .withOptionalArg().ofType(Integer.class).describedAs("seconds").defaultsTo(1);
+        OptionSpec<String> spectrum = parser.accepts("s", "Gather gamma-spectrum for a given time.")
+                .withOptionalArg().ofType(String.class).describedAs("(seconds, seconds-per-channel)").defaultsTo("3600,5");
 
         parser.accepts("l", "Live data streaming.");
         parser.accepts("d", "Dump accumulated dose log.");
@@ -102,7 +103,16 @@ public class Options {
 
         if (set.has("s")) {
             this.gatherSpectrum = true;
-            this.spectrumDuration = set.valueOf(spectrumDuration);
+            String s = set.valueOf(spectrum);
+            String[] split = s.split(",");
+            if (split.length == 1) {
+                this.spectrumDuration = Integer.valueOf(split[0]);
+                this.spectrumSecsPerChannel = 5;
+            }
+            if (split.length == 2) {
+                this.spectrumDuration = Integer.valueOf(split[0]);
+                this.spectrumSecsPerChannel = Integer.valueOf(split[1]);
+            }
         }
 
         return true;
@@ -122,6 +132,10 @@ public class Options {
 
     public int getSpectrumDuration() {
         return spectrumDuration;
+    }
+
+    public int getSpectrumSecsPerChannel() {
+        return spectrumSecsPerChannel;
     }
 
     public boolean shouldDumpInfo() {

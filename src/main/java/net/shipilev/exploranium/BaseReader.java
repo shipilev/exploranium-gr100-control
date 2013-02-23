@@ -67,6 +67,7 @@ public class BaseReader {
             CommPortIdentifier ident = CommPortIdentifier.getPortIdentifier(port);
 
             serial = ident.open("NRSerialPort", 2000);
+            serial.enableReceiveThreshold(1);
             serial.enableReceiveTimeout(1000);
             serial.setSerialPortParams(2400, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
@@ -272,9 +273,10 @@ public class BaseReader {
         final int CHANNELS = 41;
 
         int time = opts.getSpectrumDuration();
-        serial.enableReceiveTimeout(1 * 2 * 1000); // beef up for measurement
+        int secsPerChannel = opts.getSpectrumSecsPerChannel();
+        serial.enableReceiveTimeout(secsPerChannel * 2 * 1000); // beef up for measurement
 
-        pw.printf("Gathering gamma spectrum (for at least %d seconds)\n", time);
+        pw.printf("Gathering gamma spectrum (%d secs; %d secs per channel)\n", time, secsPerChannel);
 
         int[] acc = new int[CHANNELS];
 
@@ -283,23 +285,23 @@ public class BaseReader {
             commOut.write((byte) 0x53);
             commOut.flush();
 
-            int h = commIn.read();
-            if (h != 0xAA) {
+            int hb = commIn.read();
+            if (hb != 0xAA) {
                 pw.println("Unable to read from " + port);
                 return;
             }
 
-            final int secsPerChannel = 1;
             commOut.write((byte)(secsPerChannel & 0xFF));
             commOut.write((byte)((secsPerChannel >> 8) & 0xFF));
             commOut.flush();
 
             pw.print("Accumulating: ");
+            pw.flush();
             for (int i = 0; i < CHANNELS; i++) {
                 byte[] buf = readLine(commIn, 4);
 
                 int c1 = (buf[0] & 0xFF) + ((buf[1] & 0xFF) << 8);
-                acc[i] = c1;
+                acc[i] += c1;
 
                 pw.print(".");
                 pw.flush();
@@ -309,10 +311,20 @@ public class BaseReader {
             commOut.write((byte)0x5A);
             commOut.flush();
 
-            for (int i = 0; i < CHANNELS; i++) {
-                pw.printf("Channel %d/%d: %d counts\n", (i+1), CHANNELS, acc[i]);
+            int max = 0;
+            for (int a : acc) {
+                max = Math.max(max, a);
             }
-            pw.flush();
+
+            final int maxWidth = 50;
+            for (int i = 0; i < CHANNELS; i++) {
+                pw.printf("Ch: %2d, %3d cnt: ", (i+1), acc[i]);
+                for (int c = 0; c < acc[i] * maxWidth / max; c++) {
+                    pw.print('*');
+                }
+                pw.println();
+            }
+            pw.println();
         }
     }
 
