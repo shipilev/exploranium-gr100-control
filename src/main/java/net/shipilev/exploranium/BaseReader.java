@@ -301,6 +301,8 @@ public class BaseReader {
                 byte[] buf = readLine(commIn, 4);
 
                 int c1 = (buf[0] & 0xFF) + ((buf[1] & 0xFF) << 8);
+                int c2 = (buf[2] & 0xFF) + ((buf[3] & 0xFF) << 8);
+
                 acc[i] += c1;
 
                 pw.print(".");

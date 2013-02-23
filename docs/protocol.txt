@@ -147,7 +147,7 @@ RAW DATA:
 40:     1 
      
  Q: First word in 4-byte group seems to match raw data.
-    Second word in 4-byte group -- wtf?
+    Second word in 4-byte group -- wtf, is this the "rawest" data?
 
 
 ******* Read settings
